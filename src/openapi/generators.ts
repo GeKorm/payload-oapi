@@ -291,7 +291,7 @@ const generateCollectionResponses = (
         },
       },
     },
-    [componentName('responses', singular, { prefix: 'New' })]: {
+    [componentName('responses', singular, { prefix: 'Mutate' })]: {
       description: `${singular} object`,
       content: {
         'application/json': {
@@ -456,7 +456,7 @@ const generateCollectionOperations = async (
         parameters: createQueryParams,
         requestBody: composeRef('requestBodies', singular),
         responses: {
-          201: composeRef('responses', singular, { prefix: 'New' }),
+          201: composeRef('responses', singular, { prefix: 'Mutate' }),
         },
         security: (await isOpenToPublic(collection.config.access.create)) ? [] : [apiKeySecurity],
       },
@@ -481,7 +481,9 @@ const generateCollectionOperations = async (
         }),
         summary: `Find a ${singular} by ID`,
         tags,
-        responses: singleObjectResponses,
+        responses: {
+          200: composeRef('responses', singular, { prefix: 'Mutate' }),
+        },
         security: (await isOpenToPublic(collection.config.access.read)) ? [] : [apiKeySecurity],
       },
       patch: {
