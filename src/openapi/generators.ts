@@ -496,8 +496,7 @@ const generateCollectionOperations = async (
         tags,
         requestBody: composeRef('requestBodies', singular, { suffix: 'Patch' }),
         responses: {
-          200: composeRef('responses', singular, { prefix: 'Mutate' }),
-          404: composeRef('responses', singular, { prefix: 'Mutate', suffix: 'NotFound' }),
+          200: composeRef('responses', singular, { prefix: 'Mutate' })
         },
         security: (await isOpenToPublic(collection.config.access.update)) ? [] : [apiKeySecurity],
       },
