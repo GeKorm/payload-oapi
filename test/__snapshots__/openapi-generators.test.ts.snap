@@ -16350,7 +16350,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
       },
     },
     "responses": {
-      "NewPayloadLockedDocumentResponse": {
+      "MutatePayloadLockedDocumentResponse": {
         "content": {
           "application/json": {
             "schema": {
@@ -16397,7 +16397,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
         },
         "description": "Payload Locked Document object",
       },
-      "NewPayloadMigrationResponse": {
+      "MutatePayloadMigrationResponse": {
         "content": {
           "application/json": {
             "schema": {
@@ -16444,7 +16444,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
         },
         "description": "Payload Migration object",
       },
-      "NewPayloadPreferenceResponse": {
+      "MutatePayloadPreferenceResponse": {
         "content": {
           "application/json": {
             "schema": {
@@ -16491,7 +16491,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
         },
         "description": "Payload Preference object",
       },
-      "NewPostResponse": {
+      "MutatePostResponse": {
         "content": {
           "application/json": {
             "schema": {
@@ -16538,7 +16538,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
         },
         "description": "Post object",
       },
-      "NewUsersResponse": {
+      "MutateUsersResponse": {
         "content": {
           "application/json": {
             "schema": {
@@ -18329,7 +18329,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
         },
         "responses": {
           "201": {
-            "$ref": "#/components/responses/NewPayloadLockedDocumentResponse",
+            "$ref": "#/components/responses/MutatePayloadLockedDocumentResponse",
           },
         },
         "security": [
@@ -18368,10 +18368,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
         "operationId": "findPayloadLockedDocumentById",
         "responses": {
           "200": {
-            "$ref": "#/components/responses/PayloadLockedDocumentResponse",
-          },
-          "404": {
-            "$ref": "#/components/responses/PayloadLockedDocumentNotFoundResponse",
+            "$ref": "#/components/responses/MutatePayloadLockedDocumentResponse",
           },
         },
         "security": [
@@ -18560,7 +18557,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
         },
         "responses": {
           "201": {
-            "$ref": "#/components/responses/NewPayloadMigrationResponse",
+            "$ref": "#/components/responses/MutatePayloadMigrationResponse",
           },
         },
         "security": [
@@ -18599,10 +18596,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
         "operationId": "findPayloadMigrationById",
         "responses": {
           "200": {
-            "$ref": "#/components/responses/PayloadMigrationResponse",
-          },
-          "404": {
-            "$ref": "#/components/responses/PayloadMigrationNotFoundResponse",
+            "$ref": "#/components/responses/MutatePayloadMigrationResponse",
           },
         },
         "security": [
@@ -18789,7 +18783,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
         },
         "responses": {
           "201": {
-            "$ref": "#/components/responses/NewPayloadPreferenceResponse",
+            "$ref": "#/components/responses/MutatePayloadPreferenceResponse",
           },
         },
         "security": [
@@ -18828,10 +18822,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
         "operationId": "findPayloadPreferenceById",
         "responses": {
           "200": {
-            "$ref": "#/components/responses/PayloadPreferenceResponse",
-          },
-          "404": {
-            "$ref": "#/components/responses/PayloadPreferenceNotFoundResponse",
+            "$ref": "#/components/responses/MutatePayloadPreferenceResponse",
           },
         },
         "security": [
@@ -19018,7 +19009,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
         },
         "responses": {
           "201": {
-            "$ref": "#/components/responses/NewPostResponse",
+            "$ref": "#/components/responses/MutatePostResponse",
           },
         },
         "security": [
@@ -19057,10 +19048,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
         "operationId": "findPostById",
         "responses": {
           "200": {
-            "$ref": "#/components/responses/PostResponse",
-          },
-          "404": {
-            "$ref": "#/components/responses/PostNotFoundResponse",
+            "$ref": "#/components/responses/MutatePostResponse",
           },
         },
         "security": [
@@ -19259,7 +19247,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
         },
         "responses": {
           "201": {
-            "$ref": "#/components/responses/NewUsersResponse",
+            "$ref": "#/components/responses/MutateUsersResponse",
           },
         },
         "security": [
@@ -19298,10 +19286,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
         "operationId": "findUsersById",
         "responses": {
           "200": {
-            "$ref": "#/components/responses/UsersResponse",
-          },
-          "404": {
-            "$ref": "#/components/responses/UsersNotFoundResponse",
+            "$ref": "#/components/responses/MutateUsersResponse",
           },
         },
         "security": [
