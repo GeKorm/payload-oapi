@@ -1,4 +1,8 @@
-# Payload OpenAPI Plugin
+# Fork of payload-oapi with these PRs merged:
+
+- [Add blockReferences support #60](https://github.com/janbuchar/payload-oapi/pull/60)
+- [Respect default ID type from db adapter #68](https://github.com/janbuchar/payload-oapi/pull/68)
+- [Fix nested doc entity on pathc request #71](https://github.com/janbuchar/payload-oapi/pull/71)
 
 [![npm version](https://badge.fury.io/js/payload-oapi.svg)](https://www.npmjs.com/package/payload-oapi)
 

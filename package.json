@@ -1,5 +1,5 @@
 {
-  "name": "payload-oapi",
+  "name": "@gekorm/payload-oapi",
   "description": "An OpenAPI plugin for Payload CMS",
   "version": "0.2.5",
   "homepage:": "https://github.com/janbuchar/payload-oapi",
