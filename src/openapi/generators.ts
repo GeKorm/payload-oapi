@@ -285,6 +285,7 @@ const generateQueryOperationSchemas = (collection: Collection): Record<string, J
 
 const generateCollectionResponses = (
   collection: Collection,
+  config: SanitizedConfig,
 ): Record<string, OpenAPIV3_1.ResponseObject & OpenAPIV3.ResponseObject> => {
   const { singular, plural } = collectionName(collection)
 
@@ -311,7 +312,7 @@ const generateCollectionResponses = (
                   {
                     type: 'object',
                     properties: {
-                      id: { type: 'string' },
+                      id: { type: config.db.defaultIDType === 'text' ? 'string' : 'number' },
                       createdAt: {
                         type: 'string',
                         format: 'date-time',
@@ -601,7 +602,7 @@ const generateBlockSchemas = (
     config,
     removeInterfaceNames(block as any), // TODO fix types in removeInterfaceNames
     new Map(),
-    'text',
+    config.db.defaultIDType,
     undefined,
   )
 
@@ -682,7 +683,7 @@ const generateComponents = (req: Pick<PayloadRequest, 'payload'>) => {
 
   const responses: Record<string, OpenAPIV3_1.ResponseObject> = Object.assign(
     {},
-    ...Object.values(req.payload.collections).map(generateCollectionResponses),
+    ...Object.values(req.payload.collections).map((collection) => generateCollectionResponses(collection, req.payload.config)),
     ...req.payload.globals.config.map(global => ({
       [componentName('responses', globalName(global))]: generateGlobalResponse(global),
     })),

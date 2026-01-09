@@ -16367,7 +16367,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
                           "type": "string",
                         },
                         "id": {
-                          "type": "string",
+                          "type": "number",
                         },
                         "updatedAt": {
                           "format": "date-time",
@@ -16414,7 +16414,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
                           "type": "string",
                         },
                         "id": {
-                          "type": "string",
+                          "type": "number",
                         },
                         "updatedAt": {
                           "format": "date-time",
@@ -16461,7 +16461,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
                           "type": "string",
                         },
                         "id": {
-                          "type": "string",
+                          "type": "number",
                         },
                         "updatedAt": {
                           "format": "date-time",
@@ -16508,7 +16508,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
                           "type": "string",
                         },
                         "id": {
-                          "type": "string",
+                          "type": "number",
                         },
                         "updatedAt": {
                           "format": "date-time",
@@ -16555,7 +16555,7 @@ exports[`openapi generators > respects default ID type from db adapter 1`] = `
                           "type": "string",
                         },
                         "id": {
-                          "type": "string",
+                          "type": "number",
                         },
                         "updatedAt": {
                           "format": "date-time",
