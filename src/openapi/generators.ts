@@ -18,7 +18,7 @@ import type {
 } from 'payload'
 import { entityToJSONSchema } from 'payload'
 import type { SanitizedPluginOptions } from '../types.js'
-import { isHiddenField } from '../utils/fields.js'
+import { flatFilterFields, isHiddenField } from '../utils/fields.js'
 import { mapValuesAsync, visitObjectNodes } from '../utils/objects.js'
 import { type ComponentType, collectionName, componentName, globalName } from './naming.js'
 import { apiKeySecurity, generateSecuritySchemes } from './securitySchemes.js'
@@ -182,9 +182,7 @@ const generateQueryOperationSchemas = (collection: Collection): Record<string, J
       type: 'object',
       properties: Object.fromEntries(
         (
-          collection.config.fields.filter(({ type }) =>
-            ['number', 'text', 'email', 'date', 'radio', 'checkbox', 'select'].includes(type),
-          ) as Array<
+          flatFilterFields(collection.config.fields) as Array<
             FieldBase & {
               type: 'number' | 'text' | 'email' | 'date' | 'radio' | 'select' | 'checkbox'
             }
@@ -497,7 +495,7 @@ const generateCollectionOperations = async (
         tags,
         requestBody: composeRef('requestBodies', singular, { suffix: 'Patch' }),
         responses: {
-          200: composeRef('responses', singular, { prefix: 'Mutate' })
+          200: composeRef('responses', singular, { prefix: 'Mutate' }),
         },
         security: (await isOpenToPublic(collection.config.access.update)) ? [] : [apiKeySecurity],
       },
@@ -683,7 +681,9 @@ const generateComponents = (req: Pick<PayloadRequest, 'payload'>) => {
 
   const responses: Record<string, OpenAPIV3_1.ResponseObject> = Object.assign(
     {},
-    ...Object.values(req.payload.collections).map((collection) => generateCollectionResponses(collection, req.payload.config)),
+    ...Object.values(req.payload.collections).map(collection =>
+      generateCollectionResponses(collection, req.payload.config),
+    ),
     ...req.payload.globals.config.map(global => ({
       [componentName('responses', globalName(global))]: generateGlobalResponse(global),
     })),

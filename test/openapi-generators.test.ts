@@ -205,9 +205,9 @@ describe('openapi generators', () => {
     const payload = await buildPayload({
       // SQLite uses numbers for IDs
       db: sqliteAdapter({
-        client: { url: ':memory:', },
+        client: { url: ':memory:' },
       }),
-      collections: [Posts]
+      collections: [Posts],
     })
 
     const spec = await generateV30Spec(
@@ -223,4 +223,66 @@ describe('openapi generators', () => {
     expect((spec as any).components?.schemas?.Post?.properties?.id?.type).toBe('number')
   })
 
+  test('handles query operations for nested fields', async () => {
+    const Nested: CollectionConfig = {
+      slug: 'nested',
+      fields: [
+        { type: 'text', name: 'title' },
+        {
+          type: 'row',
+          fields: [
+            { type: 'number', name: 'priority' },
+            { type: 'checkbox', name: 'inverted' },
+          ],
+        },
+        {
+          type: 'group',
+          name: 'meta',
+          fields: [
+            { type: 'text', name: 'author' },
+            { type: 'text', name: 'comment' },
+          ],
+        },
+        {
+          type: 'tabs',
+          tabs: [
+            {
+              name: 'content',
+              fields: [
+                { type: 'text', name: 'article' },
+                { type: 'number', name: 'wordCount' },
+              ],
+            },
+            {
+              name: 'administration',
+              fields: [{ type: 'text', name: 'signature' }],
+            },
+          ],
+        },
+      ],
+    }
+
+    const payload = await buildPayload({
+      // SQLite uses numbers for IDs
+      db: sqliteAdapter({
+        client: { url: ':memory:' },
+      }),
+      collections: [Nested],
+    })
+
+    const spec = await generateV30Spec(
+      { protocol: 'https', headers: new Headers({ host: 'localhost' }), payload },
+      {
+        openapiVersion: '3.0',
+        authEndpoint: '/api/auth',
+        metadata: { title: 'Test API', version: '1.0' },
+      },
+    )
+
+    expect(spec).toMatchSnapshot()
+    expect(
+      (spec as any).components?.schemas?.NestedQueryOperations?.properties?.['content.wordCount']
+        ?.properties?.equals.type,
+    ).toBe('number')
+  })
 })
