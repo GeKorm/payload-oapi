@@ -214,8 +214,18 @@ const generateQueryOperationSchemas = (collection: Collection): Record<string, J
           const properties: Record<string, JSONSchema4> = {
             ['equals']: comparedValueSchema,
             ['not_equals']: comparedValueSchema,
-            ['in']: { type: 'string' },
-            ['not_in']: { type: 'string' },
+            ['in']: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+            },
+            ['not_in']: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+            },
           }
 
           if (field.type === 'text') {
