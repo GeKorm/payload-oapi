@@ -9,6 +9,7 @@ import type {
   Collection,
   Field,
   FieldBase,
+  JoinField,
   PayloadRequest,
   RadioField,
   SanitizedCollectionConfig,
@@ -22,6 +23,111 @@ import { flatFilterFields, isHiddenField } from '../utils/fields.js'
 import { mapValuesAsync, visitObjectNodes } from '../utils/objects.js'
 import { type ComponentType, collectionName, componentName, globalName } from './naming.js'
 import { apiKeySecurity, generateSecuritySchemes } from './securitySchemes.js'
+
+const buildListQueryParams = (
+  collection: Collection,
+  allCollections: Collection[],
+  { isJoining = false } = {},
+) => {
+  const joinFields = collection.config.fields.filter(
+    (field: Field): field is JoinField => field.type === 'join',
+  )
+
+  const result = [
+    { in: 'query', name: 'page', schema: { type: 'number' } },
+    { in: 'query', name: 'limit', schema: { type: 'number' } },
+    { in: 'query', name: 'pagination', schema: { type: 'boolean' } },
+    ...baseQueryParams,
+    {
+      in: 'query',
+      name: 'sort',
+      schema: {
+        type: 'string',
+        enum: collection.config.fields.flatMap(field => {
+          if (
+            field.type === 'number' ||
+            field.type === 'text' ||
+            field.type === 'email' ||
+            field.type === 'date'
+          ) {
+            return [field.name, `-${field.name}`]
+          }
+          return []
+        }),
+      },
+    },
+    {
+      in: 'query',
+      name: 'where',
+      style: 'deepObject',
+      schema: {
+        allOf: [
+          { type: 'object' },
+          {
+            anyOf: [
+              composeRef('schemas', collectionName(collection).singular, {
+                suffix: 'QueryOperations',
+              }),
+              composeRef('schemas', collectionName(collection).singular, {
+                suffix: 'QueryOperationsAnd',
+              }),
+              composeRef('schemas', collectionName(collection).singular, {
+                suffix: 'QueryOperationsOr',
+              }),
+            ],
+          },
+        ],
+      },
+    },
+  ] satisfies Array<OpenAPIV3.ParameterObject & OpenAPIV3_1.ParameterObject>
+
+  if (joinFields.length > 0) {
+    result.push({
+      in: 'query',
+      name: 'joins',
+      style: 'deepObject',
+      schema: {
+        allOf: [
+          { type: 'object' },
+          {
+            anyOf: joinFields
+              .map(joinField => {
+                let remoteCollectionName = joinField.collection
+                if (Array.isArray(remoteCollectionName)) {
+                  remoteCollectionName = remoteCollectionName[0]
+                }
+                const remoteCollection = allCollections.find(
+                  ({ config: { slug } }) => slug === remoteCollectionName,
+                )
+                if (remoteCollection && !isJoining) {
+                  return {
+                    type: 'object',
+                    properties: buildListQueryParams(remoteCollection, allCollections, {
+                      isJoining: true,
+                    }).reduce(
+                      (acc, cur) => {
+                        if (cur.schema) {
+                          if (acc) {
+                            acc[cur.name] = cur.schema
+                          }
+                        }
+                        return acc
+                      },
+                      {} as OpenAPIV3_1.SchemaObject['properties'],
+                    ),
+                  }
+                }
+                return undefined
+              })
+              .filter(Boolean) as OpenAPIV3.SchemaObject[],
+          },
+        ],
+      },
+    })
+  }
+
+  return result
+}
 
 const baseQueryParams: Array<OpenAPIV3.ParameterObject & OpenAPIV3_1.ParameterObject> = [
   { in: 'query', name: 'depth', schema: { type: 'number' } },
@@ -163,11 +269,36 @@ const generateRequestBodySchema = (
     schema.required = []
   }
 
+  const listQueryParams = buildListQueryParams(
+    collection,
+    config.collections.map(collectionConfig => ({ config: collectionConfig })),
+  )
+  const listQueryBodyProperties = listQueryParams.reduce(
+    (acc, cur) => {
+      if (cur.schema) {
+        if (acc) {
+          acc[cur.name] = cur.schema
+        }
+      }
+      return acc
+    },
+    {} as OpenAPIV3_1.SchemaObject['properties'],
+  )
+  const listQueryBody = {
+    ...schema,
+    properties: listQueryBodyProperties,
+  }
+
   return {
     description: collectionName(collection).singular,
     content: {
       'application/json': {
-        schema: requestBodySchema(collection.config.fields, schema) as OpenAPIV3_1.SchemaObject,
+        schema: {
+          oneOf: [
+            requestBodySchema(collection.config.fields, schema) as OpenAPIV3_1.SchemaObject,
+            listQueryBody as OpenAPIV3_1.SchemaObject,
+          ],
+        },
       },
     },
   }
@@ -356,6 +487,7 @@ const generateCollectionResponses = (
               },
               totalDocs: { type: 'integer' },
               limit: { type: 'integer' },
+              pagination: { type: 'boolean' },
               totalPages: { type: 'integer' },
               page: { type: 'integer' },
               pagingCounter: { type: 'integer' },
@@ -403,6 +535,8 @@ const isOpenToPublic = async (checker: Access): Promise<boolean> => {
 
 const generateCollectionOperations = async (
   collection: Collection,
+  _i: number,
+  collections: Collection[],
 ): Promise<Record<string, OpenAPIV3.PathItemObject & OpenAPIV3_1.PathItemObject>> => {
   const { slug } = collection.config
   const { singular, plural } = collectionName(collection)
@@ -419,58 +553,29 @@ const generateCollectionOperations = async (
         operationId: componentName('schemas', plural, { prefix: 'list' }),
         summary: `Retrieve a list of ${plural}`,
         tags,
-        parameters: [
-          { in: 'query', name: 'page', schema: { type: 'number' } },
-          { in: 'query', name: 'limit', schema: { type: 'number' } },
-          ...baseQueryParams,
-          {
-            in: 'query',
-            name: 'sort',
-            schema: {
-              type: 'string',
-              enum: collection.config.fields.flatMap(field => {
-                if (
-                  field.type === 'number' ||
-                  field.type === 'text' ||
-                  field.type === 'email' ||
-                  field.type === 'date'
-                ) {
-                  return [field.name, `-${field.name}`]
-                }
-                return []
-              }),
-            },
-          },
-          {
-            in: 'query',
-            name: 'where',
-            style: 'deepObject',
-            schema: {
-              allOf: [
-                { type: 'object' },
-                {
-                  anyOf: [
-                    composeRef('schemas', singular, { suffix: 'QueryOperations' }),
-                    composeRef('schemas', singular, { suffix: 'QueryOperationsAnd' }),
-                    composeRef('schemas', singular, { suffix: 'QueryOperationsOr' }),
-                  ],
-                },
-              ],
-            },
-          },
-        ],
+        parameters: buildListQueryParams(collection, collections),
         responses: {
           200: composeRef('responses', singular, { suffix: 'List' }),
         },
         security: (await isOpenToPublic(collection.config.access.read)) ? [] : [apiKeySecurity],
       },
       post: {
-        operationId: componentName('schemas', singular, { prefix: 'create' }),
-        summary: `Create a new ${singular}`,
+        operationId: componentName('schemas', singular, { prefix: 'createOrList' }),
+        summary: `Create a new ${singular} (or list via method override)`,
         tags,
-        parameters: createQueryParams,
+        parameters: [
+          ...createQueryParams,
+          {
+            name: 'X-Payload-HTTP-Method-Override',
+            in: 'header',
+            required: false,
+            schema: { type: 'string', enum: ['GET'] },
+            description: 'Set to GET to use method override.',
+          },
+        ],
         requestBody: composeRef('requestBodies', singular),
         responses: {
+          200: composeRef('responses', singular, { suffix: 'List' }),
           201: composeRef('responses', singular, { prefix: 'Mutate' }),
         },
         security: (await isOpenToPublic(collection.config.access.create)) ? [] : [apiKeySecurity],
