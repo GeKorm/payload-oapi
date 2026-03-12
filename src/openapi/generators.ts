@@ -25,10 +25,16 @@ import { mapValuesAsync, visitObjectNodes } from '../utils/objects.js'
 import { type ComponentType, collectionName, componentName, globalName } from './naming.js'
 import { apiKeySecurity, generateSecuritySchemes } from './securitySchemes.js'
 
+type DefaultIdType = SanitizedConfig['db']['defaultIDType']
+
+interface ListQueryParamsBuilderOptions {
+  isJoining?: boolean
+}
+
 const buildListQueryParams = (
   collection: Collection,
   allCollections: Collection[],
-  { isJoining = false } = {},
+  { isJoining = false }: ListQueryParamsBuilderOptions = {},
 ) => {
   const joinFields = collection.config.fields.filter(
     (field: Field): field is JoinField => field.type === 'join',
@@ -103,19 +109,24 @@ const buildListQueryParams = (
                 if (remoteCollection && !isJoining) {
                   return {
                     type: 'object',
-                    properties: buildListQueryParams(remoteCollection, allCollections, {
-                      isJoining: true,
-                    }).reduce(
-                      (acc, cur) => {
-                        if (cur.schema) {
-                          if (acc) {
-                            acc[cur.name] = cur.schema
-                          }
-                        }
-                        return acc
+                    properties: {
+                      [remoteCollectionName]: {
+                        type: 'object',
+                        properties: buildListQueryParams(remoteCollection, allCollections, {
+                          isJoining: true,
+                        }).reduce(
+                          (acc, cur) => {
+                            if (cur.schema) {
+                              if (acc) {
+                                acc[cur.name] = cur.schema
+                              }
+                            }
+                            return acc
+                          },
+                          {} as OpenAPIV3_1.SchemaObject['properties'],
+                        ),
                       },
-                      {} as OpenAPIV3_1.SchemaObject['properties'],
-                    ),
+                    },
                   }
                 }
                 return undefined
@@ -305,85 +316,101 @@ const generateRequestBodySchema = (
   }
 }
 
-const generateQueryOperationSchemas = (collection: Collection): Record<string, JSONSchema4> => {
+const generateQueryOperationSchemas = (
+  collection: Collection,
+  defaultIDType: DefaultIdType,
+): Record<string, JSONSchema4> => {
   const { singular } = collectionName(collection)
 
   return {
     [componentName('schemas', singular, { suffix: 'QueryOperations' })]: {
       title: `${singular} query operations`,
       type: 'object',
-      properties: Object.fromEntries(
-        (
-          flatFilterFields(collection.config.fields) as Array<
-            FieldBase & {
-              type: 'number' | 'text' | 'email' | 'date' | 'radio' | 'select' | 'checkbox'
-            }
-          >
-        ).map(field => {
-          const comparedValueSchema = (() => {
-            switch (field.type) {
-              case 'number':
-                return { type: 'number' } as const
-              case 'text':
-                return { type: 'string' } as const
-              case 'email':
-                return { type: 'string', format: 'email' } as const
-              case 'date':
-                return { type: 'string', format: 'date-time' } as const
-              case 'checkbox':
-                return { type: 'boolean' } as const
-              case 'radio':
-              case 'select':
-                return {
-                  type: 'string',
-                  enum: (field as RadioField | SelectField).options.map(it =>
-                    typeof it === 'string' ? it : it.value,
-                  ),
-                } as const
-            }
-          })()
+      properties: {
+        id: { type: defaultIDType === 'text' ? 'string' : 'number' },
+        ...Object.fromEntries(
+          (
+            flatFilterFields(collection.config.fields) as Array<
+              FieldBase & {
+                type: 'number' | 'text' | 'email' | 'date' | 'radio' | 'select' | 'checkbox'
+              }
+            >
+          )
+            .concat({
+              name: 'id',
+              type: defaultIDType,
+              required: true,
+              label: '',
+              hooks: {},
+              access: {},
+              admin: {},
+            })
+            .map(field => {
+              const comparedValueSchema = (() => {
+                switch (field.type) {
+                  case 'number':
+                    return { type: 'number' } as const
+                  case 'text':
+                    return { type: 'string' } as const
+                  case 'email':
+                    return { type: 'string', format: 'email' } as const
+                  case 'date':
+                    return { type: 'string', format: 'date-time' } as const
+                  case 'checkbox':
+                    return { type: 'boolean' } as const
+                  case 'radio':
+                  case 'select':
+                    return {
+                      type: 'string',
+                      enum: (field as RadioField | SelectField).options.map(it =>
+                        typeof it === 'string' ? it : it.value,
+                      ),
+                    } as const
+                }
+              })()
 
-          const properties: Record<string, JSONSchema4> = {
-            ['equals']: comparedValueSchema,
-            ['not_equals']: comparedValueSchema,
-            ['in']: {
-              type: 'array',
-              items: {
-                type: 'string',
-              },
-            },
-            ['not_in']: {
-              type: 'array',
-              items: {
-                type: 'string',
-              },
-            },
-          }
+              const properties: Record<string, JSONSchema4> = {
+                ['equals']: comparedValueSchema,
+                ['not_equals']: comparedValueSchema,
+                ['in']: {
+                  type: 'array',
+                  items: {
+                    type: 'string',
+                  },
+                },
+                ['not_in']: {
+                  type: 'array',
+                  items: {
+                    type: 'string',
+                  },
+                },
+              }
 
-          if (field.type === 'text') {
-            properties['like'] = comparedValueSchema
-          }
+              if (field.type === 'text') {
+                properties['like'] = comparedValueSchema
+              }
 
-          if (field.type === 'text' || field.type === 'email') {
-            properties['contains'] = comparedValueSchema
-          }
+              if (field.type === 'text' || field.type === 'email') {
+                properties['contains'] = comparedValueSchema
+              }
 
-          if (field.type === 'number' || field.type === 'date') {
-            properties['greater_than'] = comparedValueSchema
-            properties['greater_than_equal'] = comparedValueSchema
-            properties['less_than'] = comparedValueSchema
-            properties['less_than_equal'] = comparedValueSchema
-          }
+              if (field.type === 'number' || field.type === 'date') {
+                properties['greater_than'] = comparedValueSchema
+                properties['greater_than_equal'] = comparedValueSchema
+                properties['less_than'] = comparedValueSchema
+                properties['less_than_equal'] = comparedValueSchema
+              }
 
-          return [
-            field.name,
-            {
-              type: 'object',
-              properties,
-            },
-          ]
-        }),
-      ),
+              return [
+                field.name,
+                {
+                  type: 'object',
+                  properties,
+                },
+              ]
+            }),
+        ),
+      },
     },
     [componentName('schemas', singular, { suffix: 'QueryOperationsAnd' })]: {
       title: `${singular} query conjunction`,
@@ -775,7 +802,10 @@ const generateComponents = (
   }
 
   for (const collection of collections) {
-    Object.assign(schemas, generateQueryOperationSchemas(collection))
+    Object.assign(
+      schemas,
+      generateQueryOperationSchemas(collection, req.payload.config.db.defaultIDType),
+    )
   }
 
   for (const global of globals) {
